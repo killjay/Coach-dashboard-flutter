@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import '../models/client_coach_relationship.dart';
 import '../models/progress.dart';
@@ -14,18 +15,64 @@ class FirebaseClientService implements ClientRepository {
   @override
   Future<List<User>> getClients(String coachId) async {
     try {
+      debugPrint('🔍 Fetching clients for coach: $coachId');
+      
       // Get all client-coach relationships for this coach
+      debugPrint('📝 Querying clientCoachRelationships collection...');
       final relationshipsSnapshot = await _firestore
           .collection('clientCoachRelationships')
           .where('coachId', isEqualTo: coachId)
           .where('status', isEqualTo: 'active')
           .get();
 
+      debugPrint('📊 Found ${relationshipsSnapshot.docs.length} relationships');
+
       final clientIds = relationshipsSnapshot.docs
-          .map((doc) => (doc.data() as Map<String, dynamic>)['clientId'] as String)
+          .map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            debugPrint('📝 Relationship doc: ${doc.id}, data: $data');
+            return data['clientId'] as String?;
+          })
+          .whereType<String>()
           .toList();
 
+      debugPrint('📊 Extracted ${clientIds.length} client IDs: $clientIds');
+
       if (clientIds.isEmpty) {
+        debugPrint('⚠️⚠️⚠️ No client IDs found. Checking all relationships...');
+        debugPrint('⚠️ Query was: coachId = "$coachId", status = "active"');
+        
+        // Debug: Check if there are any relationships at all
+        final allRelationships = await _firestore
+            .collection('clientCoachRelationships')
+            .get();
+        debugPrint('📊 Total relationships in collection: ${allRelationships.docs.length}');
+        
+        if (allRelationships.docs.isEmpty) {
+          debugPrint('❌❌❌ NO RELATIONSHIPS FOUND IN COLLECTION!');
+          debugPrint('❌ The clientCoachRelationships collection is empty.');
+          debugPrint('❌ This means the relationship was not created when adding the client.');
+        } else {
+          debugPrint('📝 All relationships in database:');
+          for (final doc in allRelationships.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final docCoachId = data['coachId']?.toString() ?? 'null';
+            final docClientId = data['clientId']?.toString() ?? 'null';
+            final docStatus = data['status']?.toString() ?? 'null';
+            debugPrint('   📄 Doc ID: ${doc.id}');
+            debugPrint('      coachId: "$docCoachId" (querying for: "$coachId")');
+            debugPrint('      clientId: "$docClientId"');
+            debugPrint('      status: "$docStatus" (querying for: "active")');
+            
+            // Check if coach ID matches
+            if (docCoachId != coachId) {
+              debugPrint('      ⚠️ COACH ID MISMATCH! Expected: "$coachId", Found: "$docCoachId"');
+            }
+            if (docStatus != 'active') {
+              debugPrint('      ⚠️ STATUS MISMATCH! Expected: "active", Found: "$docStatus"');
+            }
+          }
+        }
         return [];
       }
 
@@ -33,18 +80,32 @@ class FirebaseClientService implements ClientRepository {
       final clients = <User>[];
       for (final clientId in clientIds) {
         try {
+          debugPrint('📝 Fetching user data for client: $clientId');
           final client = await _userService.getUser(clientId);
-          if (client != null && client.role == 'client') {
-            clients.add(client);
+          if (client != null) {
+            debugPrint('✅ Found user: ${client.name} (${client.email}), role: ${client.role}');
+            if (client.role == 'client') {
+              clients.add(client);
+              debugPrint('✅ Added client to list');
+            } else {
+              debugPrint('⚠️ User role is "${client.role}", not "client"');
+            }
+          } else {
+            debugPrint('⚠️ User not found for ID: $clientId');
           }
-        } catch (e) {
+        } catch (e, stackTrace) {
+          debugPrint('❌ Error fetching user $clientId: $e');
+          debugPrint('❌ Stack trace: $stackTrace');
           // Skip if user not found
           continue;
         }
       }
 
+      debugPrint('✅ Returning ${clients.length} clients');
       return clients;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error in getClients: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
       throw Exception('Failed to get clients: $e');
     }
   }
@@ -96,13 +157,22 @@ class FirebaseClientService implements ClientRepository {
       }
 
       // Create new relationship
-      await _firestore.collection('clientCoachRelationships').add({
+      final relationshipData = {
         'coachId': coachId,
         'clientId': clientId,
         'status': 'active',
         'joinedAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
+      };
+      
+      debugPrint('📝 Creating client-coach relationship');
+      debugPrint('📝 Relationship data: $relationshipData');
+      
+      final docRef = await _firestore.collection('clientCoachRelationships').add(relationshipData);
+      
+      debugPrint('✅ Client-coach relationship created with ID: ${docRef.id}');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error creating client-coach relationship: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
       throw Exception('Failed to add client: $e');
     }
   }

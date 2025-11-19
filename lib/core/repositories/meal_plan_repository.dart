@@ -84,5 +84,36 @@ abstract class MealPlanRepository {
 
   /// Delete a meal plan assignment
   Future<void> deleteMealPlanAssignment(String assignmentId);
+
+  // Meal Completion Tracking
+  /// Mark a meal as completed
+  Future<MealCompletion> markMealCompleted({
+    required String mealPlanId,
+    required String assignmentId,
+    required String mealId,
+    required String clientId,
+    required DateTime date,
+    String? notes,
+    double? rating,
+  });
+
+  /// Get meal completions for a client
+  Future<List<MealCompletion>> getMealCompletions({
+    required String clientId,
+    DateTime? startDate,
+    DateTime? endDate,
+  });
+
+  /// Get meal completions for a specific meal plan assignment
+  Future<List<MealCompletion>> getMealCompletionsForAssignment({
+    required String assignmentId,
+  });
+
+  /// Check if a meal is completed for a specific date
+  Future<bool> isMealCompleted({
+    required String mealId,
+    required String clientId,
+    required DateTime date,
+  });
 }
 

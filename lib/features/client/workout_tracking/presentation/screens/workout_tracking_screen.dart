@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../../core/models/workout.dart';
 import '../../../../../core/providers/repository_providers.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
@@ -85,7 +86,13 @@ class WorkoutTrackingScreen extends ConsumerWidget {
                       workout: workout,
                       assignment: assignment,
                       onStart: () {
-                        // TODO: Navigate to workout detail/start screen
+                        context.push(
+                          '/client/workouts/execute',
+                          extra: {
+                            'workoutId': workout.id,
+                            'assignmentId': assignment.id,
+                          },
+                        );
                       },
                       onComplete: () async {
                         try {

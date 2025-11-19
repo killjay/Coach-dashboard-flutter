@@ -80,6 +80,12 @@ class AssignedMealPlansScreen extends ConsumerWidget {
                 return _MealPlanAssignmentCard(
                   assignment: assignment,
                   isDark: isDark,
+                  onTap: () {
+                    context.push(
+                      '/client/meal-plans/${assignment.id}',
+                      extra: assignment,
+                    );
+                  },
                 );
               },
             ),
@@ -117,10 +123,12 @@ class AssignedMealPlansScreen extends ConsumerWidget {
 class _MealPlanAssignmentCard extends ConsumerWidget {
   final MealPlanAssignment assignment;
   final bool isDark;
+  final VoidCallback onTap;
 
   const _MealPlanAssignmentCard({
     required this.assignment,
     required this.isDark,
+    required this.onTap,
   });
 
   Color _getStatusColor() {
@@ -147,9 +155,12 @@ class _MealPlanAssignmentCard extends ConsumerWidget {
       }),
     );
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
         color: isDark ? AppTheme.darkSurfaceColor : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
@@ -245,6 +256,7 @@ class _MealPlanAssignmentCard extends ConsumerWidget {
           error: (_, __) => const Text('Error loading meal plan'),
         ),
       ),
+    ),
     );
   }
 }

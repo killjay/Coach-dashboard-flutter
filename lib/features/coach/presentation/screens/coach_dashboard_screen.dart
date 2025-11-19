@@ -305,6 +305,14 @@ class _CoachDashboardScreenState extends ConsumerState<CoachDashboardScreen> {
                       color: bottomNavIconColor,
                       onTap: () => context.go(AppRoutes.messages),
                       isDark: isDark,
+                    ),
+                    _ModernActionCard(
+                      icon: Icons.flag_rounded,
+                      title: 'Goals',
+                      subtitle: 'Set client goals',
+                      color: const Color(0xFF10B981),
+                      onTap: () => context.go(AppRoutes.coachGoals),
+                      isDark: isDark,
                     )
                         .animate()
                         .fadeIn(duration: 400.ms, delay: 700.ms)

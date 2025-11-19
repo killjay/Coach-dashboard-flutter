@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -8,6 +10,21 @@ import 'core/providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Suppress Flutter web keyboard event errors (known framework bug)
+  if (kIsWeb) {
+    FlutterError.onError = (FlutterErrorDetails details) {
+      // Suppress keyboard-related errors on web
+      if (details.exception.toString().contains('KeyUpEvent') ||
+          details.exception.toString().contains('HardwareKeyboard') ||
+          details.exception.toString().contains('physical key is not pressed')) {
+        // Silently ignore these known Flutter web keyboard bugs
+        return;
+      }
+      // Log other errors normally
+      FlutterError.presentError(details);
+    };
+  }
 
   // Initialize Firebase
   await Firebase.initializeApp(

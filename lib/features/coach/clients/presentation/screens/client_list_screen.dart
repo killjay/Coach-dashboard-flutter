@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../../core/models/user.dart';
 import '../../../../../core/providers/repository_providers.dart';
 import '../../../../../core/theme/app_theme.dart';
@@ -13,11 +15,24 @@ final clientListProvider = FutureProvider<List<User>>((ref) async {
   final clientRepo = ref.watch(clientRepositoryProvider);
   final user = ref.watch(currentUserProvider);
 
+  debugPrint('📋 clientListProvider: Starting to fetch clients');
+  debugPrint('📋 Current user: ${user?.id}, role: ${user?.role}');
+
   if (user == null || user.role != 'coach') {
+    debugPrint('⚠️ clientListProvider: User is null or not a coach');
     return [];
   }
 
-  return clientRepo.getClients(user.id);
+  debugPrint('📋 clientListProvider: Fetching clients for coach: ${user.id}');
+  try {
+    final clients = await clientRepo.getClients(user.id);
+    debugPrint('✅ clientListProvider: Successfully fetched ${clients.length} clients');
+    return clients;
+  } catch (e, stackTrace) {
+    debugPrint('❌ clientListProvider: Error fetching clients: $e');
+    debugPrint('❌ Stack trace: $stackTrace');
+    rethrow;
+  }
 });
 
 class ClientListScreen extends ConsumerStatefulWidget {
@@ -40,11 +55,35 @@ class _ClientListScreenState extends ConsumerState<ClientListScreen> {
   @override
   Widget build(BuildContext context) {
     final clientsAsync = ref.watch(clientListProvider);
+    
+    // Debug logging
+    clientsAsync.when(
+      data: (clients) {
+        debugPrint('📱 ClientListScreen: Received ${clients.length} clients');
+        for (final client in clients) {
+          debugPrint('   - ${client.name} (${client.email})');
+        }
+      },
+      loading: () {
+        debugPrint('📱 ClientListScreen: Loading...');
+      },
+      error: (error, stack) {
+        debugPrint('📱 ClientListScreen: Error - $error');
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Clients'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () {
+              debugPrint('🔄 Manually refreshing client list...');
+              ref.invalidate(clientListProvider);
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Add Client',
@@ -207,18 +246,46 @@ class _ClientCard extends StatelessWidget {
     required this.onTap,
   });
 
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'C';
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name[0].toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final phone = client.preferences?['phone'] as String?;
+    final country = client.preferences?['country'] as String?;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: isDark
+              ? [
+                  Colors.grey[900]!,
+                  Colors.grey[800]!,
+                ]
+              : [
+                  Colors.white,
+                  Colors.grey[50]!,
+                ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
           ),
         ],
       ),
@@ -226,67 +293,190 @@ class _ClientCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
+          splashColor: AppTheme.primaryColor.withOpacity(0.1),
+          highlightColor: AppTheme.primaryColor.withOpacity(0.05),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                // Avatar
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                  backgroundImage: client.avatarUrl != null
-                      ? NetworkImage(client.avatarUrl!)
-                      : null,
-                  child: client.avatarUrl == null
-                      ? Text(
-                          client.name.isNotEmpty
-                              ? client.name[0].toUpperCase()
-                              : 'C',
-                          style: TextStyle(
-                            color: AppTheme.primaryColor,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 16),
-                // Client info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        client.name,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        client.email,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondary,
-                            ),
+                // Enhanced Avatar with gradient border
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppTheme.primaryGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryColor.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
+                  padding: const EdgeInsets.all(3),
+                  child: CircleAvatar(
+                    radius: 32,
+                    backgroundColor: isDark ? Colors.grey[800] : Colors.white,
+                    backgroundImage: client.avatarUrl != null
+                        ? NetworkImage(client.avatarUrl!)
+                        : null,
+                    child: client.avatarUrl == null
+                        ? Text(
+                            _getInitials(client.name),
+                            style: TextStyle(
+                              color: AppTheme.primaryColor,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
-                // Arrow
-                Icon(
-                  Icons.chevron_right,
-                  color: AppTheme.textSecondary,
+                const SizedBox(width: 16),
+                // Client info with enhanced styling
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              client.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.5,
+                                    fontSize: 18,
+                                  ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.successColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppTheme.successColor.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              'Active',
+                              style: TextStyle(
+                                color: AppTheme.successColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.email_outlined,
+                            size: 14,
+                            color: AppTheme.textSecondary,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              client.email,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (phone != null || country != null) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 6,
+                          children: [
+                            if (phone != null)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.phone_outlined,
+                                    size: 12,
+                                    color: AppTheme.textHint,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    phone,
+                                    style: TextStyle(
+                                      color: AppTheme.textHint,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            if (country != null)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.location_on_outlined,
+                                    size: 12,
+                                    color: AppTheme.textHint,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    country,
+                                    style: TextStyle(
+                                      color: AppTheme.textHint,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Enhanced arrow icon
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: AppTheme.primaryColor,
+                  ),
                 ),
               ],
             ),
           ),
         ),
       ),
-    );
+    ).animate().fadeIn(duration: 300.ms).slideX(begin: 0.1);
   }
 }
 

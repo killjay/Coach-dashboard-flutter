@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../models/user.dart';
@@ -64,7 +65,16 @@ class FirebaseAuthService implements AuthRepository {
       );
 
       // Save user to Firestore
-      await _userService.saveUser(user);
+      debugPrint('📝 Attempting to save user to Firestore: ${user.id}');
+      try {
+        await _userService.saveUser(user);
+        debugPrint('✅ User saved to Firestore successfully');
+      } catch (e) {
+        debugPrint('❌ Failed to save user to Firestore: $e');
+        // Still return the user even if Firestore save fails
+        // The user account was created in Firebase Auth
+        rethrow;
+      }
 
       return user;
     } on firebase_auth.FirebaseAuthException catch (e) {

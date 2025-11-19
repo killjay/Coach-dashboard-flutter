@@ -8,6 +8,8 @@ import '../repositories/client_repository.dart';
 import '../repositories/invoice_repository.dart';
 import '../repositories/message_repository.dart';
 import '../repositories/notification_repository.dart';
+import '../repositories/goal_repository.dart';
+import '../repositories/workout_log_repository.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/firebase_workout_service.dart';
 import '../services/firebase_progress_service.dart';
@@ -16,6 +18,8 @@ import '../services/firebase_client_service.dart';
 import '../services/firebase_invoice_service.dart';
 import '../services/firebase_message_service.dart';
 import '../services/firebase_notification_service.dart';
+import '../services/firebase_goal_service.dart';
+import '../services/firebase_workout_log_service.dart';
 
 /// Provider for AuthRepository
 /// Switches between Firebase and API implementations based on config
@@ -103,6 +107,28 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
     // TODO: Return API implementation when created
     // return ApiNotificationService(ref.read(apiServiceProvider));
     throw UnimplementedError('API notification service not yet implemented');
+  }
+});
+
+/// Provider for GoalRepository
+final goalRepositoryProvider = Provider<GoalRepository>((ref) {
+  if (AppConfig.useFirebase) {
+    return FirebaseGoalService();
+  } else {
+    // TODO: Return API implementation when created
+    // return ApiGoalService(ref.read(apiServiceProvider));
+    throw UnimplementedError('API goal service not yet implemented');
+  }
+});
+
+/// Provider for WorkoutLogRepository
+final workoutLogRepositoryProvider = Provider<WorkoutLogRepository>((ref) {
+  if (AppConfig.useFirebase) {
+    return FirebaseWorkoutLogService();
+  } else {
+    // TODO: Return API implementation when created
+    // return ApiWorkoutLogService(ref.read(apiServiceProvider));
+    throw UnimplementedError('API workout log service not yet implemented');
   }
 });
 

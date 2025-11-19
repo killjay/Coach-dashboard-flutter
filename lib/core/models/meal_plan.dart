@@ -124,4 +124,23 @@ class MacroNutrients with _$MacroNutrients {
       _$MacroNutrientsFromJson(json);
 }
 
+/// Meal completion model - tracks when a client completes a meal
+@freezed
+class MealCompletion with _$MealCompletion {
+  const factory MealCompletion({
+    required String id,
+    required String mealPlanId,
+    required String assignmentId,
+    required String mealId,
+    required String clientId,
+    required DateTime date, // Date of the meal
+    required DateTime completedAt,
+    String? notes,
+    double? rating, // Optional rating (1-5 stars)
+  }) = _MealCompletion;
+
+  factory MealCompletion.fromJson(Map<String, dynamic> json) =>
+      _$MealCompletionFromJson(json);
+}
+
 

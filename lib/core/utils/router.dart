@@ -21,6 +21,7 @@ import '../../features/coach/clients/presentation/screens/client_list_screen.dar
 import '../../features/coach/clients/presentation/screens/client_detail_screen.dart';
 import '../../features/coach/clients/presentation/screens/add_client_screen.dart';
 import '../../features/client/workout_tracking/presentation/screens/workout_tracking_screen.dart';
+import '../../features/client/workout_tracking/presentation/screens/workout_execution_screen.dart';
 import '../../features/client/water_tracking/presentation/screens/water_tracking_screen.dart';
 import '../../features/client/progress/presentation/screens/progress_screen.dart';
 import '../../features/coach/invoices/presentation/screens/invoice_list_screen.dart';
@@ -28,6 +29,7 @@ import '../../features/coach/invoices/presentation/screens/create_invoice_screen
 import '../../features/coach/invoices/presentation/screens/invoice_detail_screen.dart';
 import '../../features/coach/analytics/presentation/screens/analytics_screen.dart';
 import '../../core/models/invoice.dart';
+import '../../core/models/goal.dart';
 import '../../features/shared/messaging/presentation/screens/conversation_list_screen.dart';
 import '../../features/shared/messaging/presentation/screens/chat_screen.dart';
 import '../../core/models/message.dart';
@@ -37,6 +39,11 @@ import '../../features/coach/workouts/presentation/screens/workout_calendar_scre
 import '../../features/shared/messaging/presentation/screens/client_conversation_list_screen.dart';
 import '../../features/client/meal_plans/presentation/screens/assigned_meal_plans_screen.dart';
 import '../../features/client/workouts/presentation/screens/client_workout_calendar_screen.dart';
+import '../../features/coach/goals/presentation/screens/goal_list_screen.dart';
+import '../../features/coach/goals/presentation/screens/create_goal_screen.dart';
+import '../../features/coach/goals/presentation/screens/goal_detail_screen.dart';
+import '../../features/client/goals/presentation/screens/client_goals_screen.dart';
+import '../../features/client/goals/presentation/screens/client_goal_detail_screen.dart';
 
 /// App routes
 class AppRoutes {
@@ -63,6 +70,7 @@ class AppRoutes {
   static const String clientMealPlans = '/client/meal-plans';
   static const String clientNotifications = '/client/notifications';
   static const String clientWorkoutCalendar = '/client/workouts/calendar';
+  static const String clientWorkoutExecute = '/client/workouts/execute';
   static const String invoices = '/coach/invoices';
   static const String createInvoice = '/coach/invoices/create';
   static const String invoiceDetail = '/coach/invoices/:id';
@@ -72,6 +80,11 @@ class AppRoutes {
   static const String assignMealPlan = '/coach/meal-plans/assign';
   static const String notifications = '/notifications';
   static const String workoutCalendar = '/coach/workouts/calendar';
+  static const String coachGoals = '/coach/goals';
+  static const String createGoal = '/coach/goals/create';
+  static const String goalDetail = '/coach/goals/:id';
+  static const String clientGoals = '/client/goals';
+  static const String clientGoalDetail = '/client/goals/:id';
 }
 
 /// Router configuration
@@ -204,6 +217,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const WorkoutTrackingScreen(),
       ),
       GoRoute(
+        path: AppRoutes.clientWorkoutExecute,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final workoutId = extra?['workoutId'] as String? ?? '';
+          final assignmentId = extra?['assignmentId'] as String? ?? '';
+          return WorkoutExecutionScreen(
+            workoutId: workoutId,
+            assignmentId: assignmentId,
+          );
+        },
+      ),
+      GoRoute(
         path: AppRoutes.clientWater,
         builder: (context, state) => const WaterTrackingScreen(),
       ),
@@ -293,6 +318,40 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.clientWorkoutCalendar,
         builder: (context, state) => const ClientWorkoutCalendarScreen(),
+      ),
+      // Goal routes
+      GoRoute(
+        path: AppRoutes.coachGoals,
+        builder: (context, state) => const GoalListScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.createGoal,
+        builder: (context, state) {
+          final goal = state.extra as Goal?;
+          final clientId = state.uri.queryParameters['clientId'];
+          return CreateGoalScreen(
+            goal: goal,
+            clientId: clientId,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.goalDetail,
+        builder: (context, state) {
+          final goalId = state.pathParameters['id']!;
+          return GoalDetailScreen(goalId: goalId);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.clientGoals,
+        builder: (context, state) => const ClientGoalsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.clientGoalDetail,
+        builder: (context, state) {
+          final goalId = state.pathParameters['id']!;
+          return ClientGoalDetailScreen(goalId: goalId);
+        },
       ),
     ],
   );

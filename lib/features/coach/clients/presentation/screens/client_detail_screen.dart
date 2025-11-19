@@ -71,6 +71,13 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen>
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.flag_rounded),
+            tooltip: 'Set Goal',
+            onPressed: () {
+              context.push('/coach/goals/create?clientId=${widget.clientId}');
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.message_rounded),
             tooltip: 'Message Client',
             onPressed: () {

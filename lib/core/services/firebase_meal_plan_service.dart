@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/meal_plan.dart' show MealPlan, Meal, Ingredient, IngredientUsage, CookingVideo, MacroNutrients, MealPlanAssignment;
+import '../models/meal_plan.dart';
 import '../repositories/meal_plan_repository.dart';
 
 /// Firebase implementation of MealPlanRepository
@@ -489,6 +489,146 @@ class FirebaseMealPlanService implements MealPlanRepository {
           .delete();
     } catch (e) {
       throw Exception('Failed to delete meal plan assignment: $e');
+    }
+  }
+
+  // Meal Completion Tracking
+
+  @override
+  Future<MealCompletion> markMealCompleted({
+    required String mealPlanId,
+    required String assignmentId,
+    required String mealId,
+    required String clientId,
+    required DateTime date,
+    String? notes,
+    double? rating,
+  }) async {
+    try {
+      final completion = MealCompletion(
+        id: '',
+        mealPlanId: mealPlanId,
+        assignmentId: assignmentId,
+        mealId: mealId,
+        clientId: clientId,
+        date: date,
+        completedAt: DateTime.now(),
+        notes: notes,
+        rating: rating,
+      );
+
+      final completionData = completion.toJson();
+      completionData.remove('id');
+
+      // Check if meal is already completed for this date
+      final existing = await _firestore
+          .collection('mealCompletions')
+          .where('mealId', isEqualTo: mealId)
+          .where('clientId', isEqualTo: clientId)
+          .where('date', isEqualTo: Timestamp.fromDate(DateTime(date.year, date.month, date.day)))
+          .limit(1)
+          .get();
+
+      if (existing.docs.isNotEmpty) {
+        // Update existing completion
+        await existing.docs.first.reference.update({
+          ...completionData,
+          'completedAt': FieldValue.serverTimestamp(),
+          'date': Timestamp.fromDate(DateTime(date.year, date.month, date.day)),
+        });
+        return completion.copyWith(id: existing.docs.first.id);
+      } else {
+        // Create new completion
+        final docRef = await _firestore.collection('mealCompletions').add({
+          ...completionData,
+          'completedAt': FieldValue.serverTimestamp(),
+          'date': Timestamp.fromDate(DateTime(date.year, date.month, date.day)),
+        });
+        return completion.copyWith(id: docRef.id);
+      }
+    } catch (e) {
+      throw Exception('Failed to mark meal as completed: $e');
+    }
+  }
+
+  @override
+  Future<List<MealCompletion>> getMealCompletions({
+    required String clientId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      Query query = _firestore
+          .collection('mealCompletions')
+          .where('clientId', isEqualTo: clientId);
+
+      if (startDate != null) {
+        query = query.where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(DateTime(startDate.year, startDate.month, startDate.day)));
+      }
+      if (endDate != null) {
+        query = query.where('date', isLessThanOrEqualTo: Timestamp.fromDate(DateTime(endDate.year, endDate.month, endDate.day)));
+      }
+
+      final snapshot = await query.orderBy('date', descending: true).get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return MealCompletion.fromJson({
+          'id': doc.id,
+          ...data,
+          'date': (data['date'] as Timestamp).toDate(),
+          'completedAt': (data['completedAt'] as Timestamp).toDate(),
+        });
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to get meal completions: $e');
+    }
+  }
+
+  @override
+  Future<List<MealCompletion>> getMealCompletionsForAssignment({
+    required String assignmentId,
+  }) async {
+    try {
+      final snapshot = await _firestore
+          .collection('mealCompletions')
+          .where('assignmentId', isEqualTo: assignmentId)
+          .orderBy('date', descending: true)
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return MealCompletion.fromJson({
+          'id': doc.id,
+          ...data,
+          'date': (data['date'] as Timestamp).toDate(),
+          'completedAt': (data['completedAt'] as Timestamp).toDate(),
+        });
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to get meal completions for assignment: $e');
+    }
+  }
+
+  @override
+  Future<bool> isMealCompleted({
+    required String mealId,
+    required String clientId,
+    required DateTime date,
+  }) async {
+    try {
+      final dateKey = DateTime(date.year, date.month, date.day);
+      final snapshot = await _firestore
+          .collection('mealCompletions')
+          .where('mealId', isEqualTo: mealId)
+          .where('clientId', isEqualTo: clientId)
+          .where('date', isEqualTo: Timestamp.fromDate(dateKey))
+          .limit(1)
+          .get();
+
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      return false;
     }
   }
 }

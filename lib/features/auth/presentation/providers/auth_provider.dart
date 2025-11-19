@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/user.dart';
 import '../../../../core/providers/repository_providers.dart';
 import '../../../../core/repositories/auth_repository.dart';
+import '../../../../core/config/app_config.dart';
 
 /// Authentication state provider
 final authStateProvider = StreamProvider<User?>((ref) {
@@ -10,10 +11,31 @@ final authStateProvider = StreamProvider<User?>((ref) {
 });
 
 /// Current user provider
+/// Returns the authenticated user, or a default user if skipAuthentication is enabled
 final currentUserProvider = Provider<User?>((ref) {
+  // If authentication is skipped, return a default user
+  if (AppConfig.skipAuthentication) {
+    return User(
+      id: 'dev-coach-${AppConfig.defaultRole}',
+      email: '${AppConfig.defaultRole}@dev.local',
+      name: 'Development ${AppConfig.defaultRole.capitalize()}',
+      role: AppConfig.defaultRole,
+      createdAt: DateTime.now(),
+    );
+  }
+
+  // Normal flow: return authenticated user
   final authState = ref.watch(authStateProvider);
   return authState.value;
 });
+
+/// Extension to capitalize first letter
+extension StringExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return '${this[0].toUpperCase()}${substring(1)}';
+  }
+}
 
 /// Authentication notifier
 class AuthNotifier extends StateNotifier<AsyncValue<void>> {

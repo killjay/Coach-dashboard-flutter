@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../../core/providers/repository_providers.dart';
@@ -74,39 +75,42 @@ class _AddClientScreenState extends ConsumerState<AddClientScreen> {
       return;
     }
 
+    // Prevent double submission
+    if (_isSaving) {
+      debugPrint('⚠️ Save already in progress, ignoring duplicate call');
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
+      debugPrint('🚀 Starting client creation process...');
+      
       final coach = ref.read(currentUserProvider);
       if (coach == null) {
         throw Exception('Coach not found');
       }
+      debugPrint('✅ Coach found: ${coach.id}');
 
       final authService = FirebaseAuthService();
       final userService = FirebaseUserService();
       final clientRepo = ref.read(clientRepositoryProvider);
 
-      // Check if user already exists
-      // For now, we'll create a new user account
-      // In production, you might want to check if email exists first
-      // and send an invitation instead
-
       // Generate a temporary password
-      // In production, you should send an invitation email with a secure link
-      // For now, we'll generate a random password
       final tempPassword = _generateTempPassword();
+      debugPrint('🔑 Generated temporary password');
 
       // Create user account
+      debugPrint('📝 Creating Firebase Auth user...');
       final newUser = await authService.signUpWithEmail(
         email: _emailController.text.trim(),
         password: tempPassword,
         name: _nameController.text.trim(),
         role: 'client',
       );
+      debugPrint('✅ Firebase Auth user created: ${newUser.id}');
 
       // Update user with additional info (phone, country)
-      // Store phone and country in preferences for now
-      // In production, you might want to add these as separate fields
       final updatedUser = newUser.copyWith(
         preferences: {
           'phone': _phoneController.text.trim(),
@@ -114,15 +118,33 @@ class _AddClientScreenState extends ConsumerState<AddClientScreen> {
         },
       );
 
-      await userService.updateUser(updatedUser);
+      debugPrint('📝 Updating user with phone and country...');
+      try {
+        await userService.updateUser(updatedUser);
+        debugPrint('✅ User updated in Firestore: ${updatedUser.id}');
+      } catch (e, stackTrace) {
+        debugPrint('❌ Error updating user in Firestore: $e');
+        debugPrint('❌ Stack trace: $stackTrace');
+        // Don't throw here - the user was created in Auth, we can continue
+        // The phone/country can be updated later
+      }
 
       // Create client-coach relationship
-      await clientRepo.addClient(
-        coachId: coach.id,
-        clientId: newUser.id,
-      );
+      debugPrint('📝 Creating client-coach relationship...');
+      try {
+        await clientRepo.addClient(
+          coachId: coach.id,
+          clientId: newUser.id,
+        );
+        debugPrint('✅ Client-coach relationship created');
+      } catch (e, stackTrace) {
+        debugPrint('❌ Error creating client-coach relationship: $e');
+        debugPrint('❌ Stack trace: $stackTrace');
+        throw Exception('Failed to create client relationship: $e');
+      }
 
       if (mounted) {
+        debugPrint('✅ Client creation completed successfully');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Client added successfully!'),
@@ -132,12 +154,40 @@ class _AddClientScreenState extends ConsumerState<AddClientScreen> {
         ref.invalidate(clientListProvider);
         context.pop();
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error in _saveClient: $e');
+      debugPrint('❌ Error type: ${e.runtimeType}');
+      debugPrint('❌ Stack trace: $stackTrace');
+      
       if (mounted) {
+        String errorMessage = 'Error adding client';
+        
+        // Provide more specific error messages
+        final errorString = e.toString().toLowerCase();
+        if (errorString.contains('permission-denied') ||
+            errorString.contains('permission denied')) {
+          errorMessage = 'Permission denied. Please check your Firestore security rules.';
+        } else if (errorString.contains('unavailable') ||
+            errorString.contains('network')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (errorString.contains('email-already-in-use') ||
+            errorString.contains('email already exists')) {
+          errorMessage = 'This email is already registered. Please use a different email.';
+        } else if (errorString.contains('invalid-email')) {
+          errorMessage = 'Invalid email address. Please check and try again.';
+        } else if (errorString.contains('weak-password')) {
+          errorMessage = 'Password is too weak. Please try again.';
+        } else if (errorString.contains('timeout')) {
+          errorMessage = 'Operation timed out. Please check your connection and try again.';
+        } else {
+          errorMessage = 'Error adding client: ${e.toString()}';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error adding client: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 8),
           ),
         );
       }
@@ -276,6 +326,7 @@ class _AddClientScreenState extends ConsumerState<AddClientScreen> {
                   });
                 }
               },
+              menuMaxHeight: 300,
             ),
             const SizedBox(height: 32),
             Card(

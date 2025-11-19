@@ -266,6 +266,19 @@ class _ClientDashboardScreenState extends ConsumerState<ClientDashboardScreen> {
                       context.go(AppRoutes.clientWorkoutCalendar);
                     },
                   ),
+                  _QuickActionCard(
+                    icon: Icons.flag_rounded,
+                    title: 'Goals',
+                    subtitle: 'Track my goals',
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF10B981), Color(0xFF34D399)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    onTap: () {
+                      context.go(AppRoutes.clientGoals);
+                    },
+                  ),
                 ],
               ),
             ],
