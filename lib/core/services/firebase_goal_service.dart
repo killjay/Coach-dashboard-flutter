@@ -6,6 +6,69 @@ import '../repositories/goal_repository.dart';
 class FirebaseGoalService implements GoalRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Convert Firestore data to JSON format, handling Timestamps
+  Map<String, dynamic> _convertFirestoreData(Map<String, dynamic> data) {
+    final converted = Map<String, dynamic>.from(data);
+    
+    // Convert Timestamp to ISO 8601 string
+    if (converted['createdAt'] != null) {
+      if (converted['createdAt'] is Timestamp) {
+        converted['createdAt'] = (converted['createdAt'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      } else if (converted['createdAt'] is DateTime) {
+        converted['createdAt'] = (converted['createdAt'] as DateTime)
+            .toIso8601String();
+      }
+    }
+    
+    if (converted['updatedAt'] != null) {
+      if (converted['updatedAt'] is Timestamp) {
+        converted['updatedAt'] = (converted['updatedAt'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      } else if (converted['updatedAt'] is DateTime) {
+        converted['updatedAt'] = (converted['updatedAt'] as DateTime)
+            .toIso8601String();
+      }
+    }
+    
+    if (converted['startDate'] != null) {
+      if (converted['startDate'] is Timestamp) {
+        converted['startDate'] = (converted['startDate'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      } else if (converted['startDate'] is DateTime) {
+        converted['startDate'] = (converted['startDate'] as DateTime)
+            .toIso8601String();
+      }
+    }
+    
+    if (converted['targetDate'] != null) {
+      if (converted['targetDate'] is Timestamp) {
+        converted['targetDate'] = (converted['targetDate'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      } else if (converted['targetDate'] is DateTime) {
+        converted['targetDate'] = (converted['targetDate'] as DateTime)
+            .toIso8601String();
+      }
+    }
+    
+    if (converted['completedAt'] != null) {
+      if (converted['completedAt'] is Timestamp) {
+        converted['completedAt'] = (converted['completedAt'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      } else if (converted['completedAt'] is DateTime) {
+        converted['completedAt'] = (converted['completedAt'] as DateTime)
+            .toIso8601String();
+      }
+    }
+    
+    return converted;
+  }
+
   @override
   Future<Goal> createGoal(Goal goal) async {
     try {
@@ -43,12 +106,7 @@ class FirebaseGoalService implements GoalRepository {
       final data = doc.data() as Map<String, dynamic>;
       return Goal.fromJson({
         'id': doc.id,
-        ...data,
-        'startDate': (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-        'targetDate': (data['targetDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-        'completedAt': (data['completedAt'] as Timestamp?)?.toDate(),
-        'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
-        'updatedAt': (data['updatedAt'] as Timestamp?)?.toDate(),
+        ..._convertFirestoreData(data),
       });
     } catch (e) {
       throw Exception('Failed to get goal: $e');
@@ -69,12 +127,7 @@ class FirebaseGoalService implements GoalRepository {
             final data = doc.data() as Map<String, dynamic>;
             return Goal.fromJson({
               'id': doc.id,
-              ...data,
-              'startDate': (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              'targetDate': (data['targetDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              'completedAt': (data['completedAt'] as Timestamp?)?.toDate(),
-              'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
-              'updatedAt': (data['updatedAt'] as Timestamp?)?.toDate(),
+              ..._convertFirestoreData(data),
             });
           })
           .toList();
@@ -97,12 +150,7 @@ class FirebaseGoalService implements GoalRepository {
             final data = doc.data() as Map<String, dynamic>;
             return Goal.fromJson({
               'id': doc.id,
-              ...data,
-              'startDate': (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              'targetDate': (data['targetDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              'completedAt': (data['completedAt'] as Timestamp?)?.toDate(),
-              'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
-              'updatedAt': (data['updatedAt'] as Timestamp?)?.toDate(),
+              ..._convertFirestoreData(data),
             });
           })
           .toList();
@@ -207,10 +255,23 @@ class FirebaseGoalService implements GoalRepository {
       return snapshot.docs
           .map((doc) {
             final data = doc.data() as Map<String, dynamic>;
+            final converted = Map<String, dynamic>.from(data);
+            
+            // Convert Timestamp to ISO 8601 string
+            if (converted['loggedAt'] != null) {
+              if (converted['loggedAt'] is Timestamp) {
+                converted['loggedAt'] = (converted['loggedAt'] as Timestamp)
+                    .toDate()
+                    .toIso8601String();
+              } else if (converted['loggedAt'] is DateTime) {
+                converted['loggedAt'] = (converted['loggedAt'] as DateTime)
+                    .toIso8601String();
+              }
+            }
+            
             return GoalProgressLog.fromJson({
               'id': doc.id,
-              ...data,
-              'loggedAt': (data['loggedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+              ...converted,
             });
           })
           .toList();
@@ -267,12 +328,7 @@ class FirebaseGoalService implements GoalRepository {
               final data = doc.data() as Map<String, dynamic>;
               return Goal.fromJson({
                 'id': doc.id,
-                ...data,
-                'startDate': (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-                'targetDate': (data['targetDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-                'completedAt': (data['completedAt'] as Timestamp?)?.toDate(),
-                'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
-                'updatedAt': (data['updatedAt'] as Timestamp?)?.toDate(),
+                ..._convertFirestoreData(data),
               });
             })
             .toList());
@@ -290,12 +346,7 @@ class FirebaseGoalService implements GoalRepository {
               final data = doc.data() as Map<String, dynamic>;
               return Goal.fromJson({
                 'id': doc.id,
-                ...data,
-                'startDate': (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-                'targetDate': (data['targetDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-                'completedAt': (data['completedAt'] as Timestamp?)?.toDate(),
-                'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
-                'updatedAt': (data['updatedAt'] as Timestamp?)?.toDate(),
+                ..._convertFirestoreData(data),
               });
             })
             .toList());

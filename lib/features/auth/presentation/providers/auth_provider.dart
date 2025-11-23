@@ -76,10 +76,11 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   /// Sign in with Google
-  Future<void> signInWithGoogle() async {
+  /// [role] is optional and only used for new users. Existing users keep their current role.
+  Future<void> signInWithGoogle({String? role}) async {
     state = const AsyncValue.loading();
     try {
-      await _authRepository.signInWithGoogle();
+      await _authRepository.signInWithGoogle(role: role);
       state = const AsyncValue.data(null);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../../../../core/utils/router.dart';
+import '../widgets/social_auth_button.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -45,6 +46,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       name: _nameController.text.trim(),
       role: _selectedRole,
     );
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    final authState = ref.read(authStateProvider);
+    if (authState.hasValue && authState.value != null) {
+      final user = authState.value!;
+      if (user.role == 'coach') {
+        context.go(AppRoutes.coachDashboard);
+      } else {
+        context.go(AppRoutes.clientDashboard);
+      }
+    } else if (authState.hasError) {
+      _showErrorDialog(authState.error.toString());
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    final authNotifier = ref.read(authNotifierProvider.notifier);
+    // Pass the selected role for new users
+    await authNotifier.signInWithGoogle(role: _selectedRole);
 
     if (!mounted) return;
 
@@ -239,6 +263,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Sign Up'),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'OR',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                SocialAuthButton(
+                  icon: Icons.g_mobiledata,
+                  label: 'Continue with Google',
+                  onPressed: _isLoading ? null : _handleGoogleSignIn,
                 ),
                 const SizedBox(height: 24),
                 Row(

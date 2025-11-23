@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/utils/router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_icons.dart';
+import '../../../../core/widgets/modern_card.dart';
 import '../../../shared/widgets/bottom_nav_bar.dart';
 
 class ClientDashboardScreen extends ConsumerStatefulWidget {
@@ -34,7 +37,7 @@ class _ClientDashboardScreenState extends ConsumerState<ClientDashboardScreen> {
         context.go(AppRoutes.clientProgress);
         break;
       case 4:
-        // TODO: Navigate to profile
+        context.push('/profile');
         break;
     }
   }
@@ -176,7 +179,7 @@ class _ClientDashboardScreenState extends ConsumerState<ClientDashboardScreen> {
                 childAspectRatio: responsive.isMobile ? 1.4 : 1.25,
                 children: [
                   _QuickActionCard(
-                    icon: Icons.fitness_center,
+                    icon: AppIcons.workout,
                     title: 'Workouts',
                     subtitle: 'View workouts',
                     gradient: const LinearGradient(
@@ -189,7 +192,7 @@ class _ClientDashboardScreenState extends ConsumerState<ClientDashboardScreen> {
                     },
                   ),
                   _QuickActionCard(
-                    icon: Icons.water_drop,
+                    icon: AppIcons.water,
                     title: 'Water',
                     subtitle: 'Track intake',
                     gradient: const LinearGradient(
@@ -202,7 +205,7 @@ class _ClientDashboardScreenState extends ConsumerState<ClientDashboardScreen> {
                     },
                   ),
                   _QuickActionCard(
-                    icon: Icons.trending_up,
+                    icon: AppIcons.progress,
                     title: 'Progress',
                     subtitle: 'View progress',
                     gradient: const LinearGradient(
@@ -215,7 +218,7 @@ class _ClientDashboardScreenState extends ConsumerState<ClientDashboardScreen> {
                     },
                   ),
                   _QuickActionCard(
-                    icon: Icons.restaurant_menu,
+                    icon: AppIcons.meal,
                     title: 'Meal Plans',
                     subtitle: 'View plans',
                     gradient: const LinearGradient(
@@ -228,7 +231,7 @@ class _ClientDashboardScreenState extends ConsumerState<ClientDashboardScreen> {
                     },
                   ),
                   _QuickActionCard(
-                    icon: Icons.message_rounded,
+                    icon: AppIcons.message,
                     title: 'Messages',
                     subtitle: 'Chat with coach',
                     gradient: const LinearGradient(
@@ -241,7 +244,7 @@ class _ClientDashboardScreenState extends ConsumerState<ClientDashboardScreen> {
                     },
                   ),
                   _QuickActionCard(
-                    icon: Icons.notifications_rounded,
+                    icon: AppIcons.notification,
                     title: 'Notifications',
                     subtitle: 'View updates',
                     gradient: const LinearGradient(
@@ -254,7 +257,7 @@ class _ClientDashboardScreenState extends ConsumerState<ClientDashboardScreen> {
                     },
                   ),
                   _QuickActionCard(
-                    icon: Icons.calendar_today_rounded,
+                    icon: AppIcons.calendar,
                     title: 'Calendar',
                     subtitle: 'Workout schedule',
                     gradient: const LinearGradient(
@@ -267,7 +270,7 @@ class _ClientDashboardScreenState extends ConsumerState<ClientDashboardScreen> {
                     },
                   ),
                   _QuickActionCard(
-                    icon: Icons.flag_rounded,
+                    icon: AppIcons.goal,
                     title: 'Goals',
                     subtitle: 'Track my goals',
                     gradient: const LinearGradient(
@@ -349,7 +352,7 @@ class _QuickActionCardState extends State<_QuickActionCard>
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(
+                    child: PhosphorIcon(
                       widget.icon,
                       size: 28,
                       color: Colors.white,

@@ -6,6 +6,22 @@ import '../repositories/meal_plan_repository.dart';
 class FirebaseMealPlanService implements MealPlanRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Convert Firestore data to JSON format, handling Timestamps for ingredients/meal plans/videos
+  Map<String, dynamic> _convertFirestoreData(Map<String, dynamic> data) {
+    final converted = Map<String, dynamic>.from(data);
+    
+    // Convert Timestamp to ISO 8601 string
+    if (converted['createdAt'] != null) {
+      if (converted['createdAt'] is Timestamp) {
+        converted['createdAt'] = (converted['createdAt'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      }
+    }
+    
+    return converted;
+  }
+
   // Ingredients
 
   @override
@@ -22,7 +38,7 @@ class FirebaseMealPlanService implements MealPlanRepository {
             final data = doc.data();
             return Ingredient.fromJson({
               'id': doc.id,
-              ...data,
+              ..._convertFirestoreData(data),
             });
           })
           .toList();
@@ -47,7 +63,7 @@ class FirebaseMealPlanService implements MealPlanRepository {
       }
       return Ingredient.fromJson({
         'id': doc.id,
-        ...data,
+        ..._convertFirestoreData(data),
       });
     } catch (e) {
       throw Exception('Failed to get ingredient: $e');
@@ -116,7 +132,7 @@ class FirebaseMealPlanService implements MealPlanRepository {
             final data = doc.data();
             return MealPlan.fromJson({
               'id': doc.id,
-              ...data,
+              ..._convertFirestoreData(data),
             });
           })
           .toList();
@@ -141,7 +157,7 @@ class FirebaseMealPlanService implements MealPlanRepository {
       }
       return MealPlan.fromJson({
         'id': doc.id,
-        ...data,
+        ..._convertFirestoreData(data),
       });
     } catch (e) {
       throw Exception('Failed to get meal plan: $e');
@@ -209,7 +225,7 @@ class FirebaseMealPlanService implements MealPlanRepository {
             final data = doc.data();
             return CookingVideo.fromJson({
               'id': doc.id,
-              ...data,
+              ..._convertFirestoreData(data),
             });
           })
           .toList();
@@ -234,7 +250,7 @@ class FirebaseMealPlanService implements MealPlanRepository {
       }
       return CookingVideo.fromJson({
         'id': doc.id,
-        ...data,
+        ..._convertFirestoreData(data),
       });
     } catch (e) {
       throw Exception('Failed to get cooking video: $e');
@@ -298,10 +314,10 @@ class FirebaseMealPlanService implements MealPlanRepository {
         .map((snapshot) => snapshot.docs
             .map((doc) {
               final data = doc.data();
-              return Ingredient.fromJson({
-                'id': doc.id,
-                ...data,
-              });
+            return Ingredient.fromJson({
+              'id': doc.id,
+              ..._convertFirestoreData(data),
+            });
             })
             .toList());
   }
@@ -317,10 +333,10 @@ class FirebaseMealPlanService implements MealPlanRepository {
         .map((snapshot) => snapshot.docs
             .map((doc) {
               final data = doc.data();
-              return MealPlan.fromJson({
-                'id': doc.id,
-                ...data,
-              });
+            return MealPlan.fromJson({
+              'id': doc.id,
+              ..._convertFirestoreData(data),
+            });
             })
             .toList());
   }
@@ -337,7 +353,7 @@ class FirebaseMealPlanService implements MealPlanRepository {
               final data = doc.data() as Map<String, dynamic>;
               return CookingVideo.fromJson({
                 'id': doc.id,
-                ...data,
+                ..._convertFirestoreData(data),
               });
             })
             .toList());

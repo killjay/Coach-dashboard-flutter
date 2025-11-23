@@ -26,18 +26,32 @@ class WorkoutDetailScreen extends ConsumerWidget {
         title: const Text('Workout Details'),
         actions: [
           workoutAsync.when(
-            data: (workout) => IconButton(
-              icon: const Icon(Icons.edit),
-              tooltip: 'Edit Workout',
-              onPressed: () {
-                context.push(
-                  '/coach/workouts/create',
-                  extra: workout,
-                ).then((_) {
-                  // Refresh workout detail when returning from edit
-                  ref.invalidate(workoutDetailProvider(workoutId));
-                });
-              },
+            data: (workout) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.person_add),
+                  tooltip: 'Assign Workout',
+                  onPressed: () {
+                    context.push(
+                      '/coach/workouts/assign?workoutId=${workout.id}',
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  tooltip: 'Edit Workout',
+                  onPressed: () {
+                    context.push(
+                      '/coach/workouts/create',
+                      extra: workout,
+                    ).then((_) {
+                      // Refresh workout detail when returning from edit
+                      ref.invalidate(workoutDetailProvider(workoutId));
+                    });
+                  },
+                ),
+              ],
             ),
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),

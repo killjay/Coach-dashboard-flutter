@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_icons.dart';
 
 // Custom color for bottom navigation icons
 // RGB: rgba(37, 150, 190) | HSL: 167,67,45 | Hex: #2596BE
@@ -44,35 +46,35 @@ class CoachBottomNavBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _NavItem(
-                icon: Icons.dashboard_rounded,
+                icon: currentIndex == 0 ? AppIcons.dashboardFilled : AppIcons.dashboard,
                 label: 'Dashboard',
                 isActive: currentIndex == 0,
                 onTap: () => onTap(0),
                 isDark: isDark,
               ),
               _NavItem(
-                icon: Icons.fitness_center_rounded,
+                icon: currentIndex == 1 ? AppIcons.workoutFilled : AppIcons.workout,
                 label: 'Workouts',
                 isActive: currentIndex == 1,
                 onTap: () => onTap(1),
                 isDark: isDark,
               ),
               _NavItem(
-                icon: Icons.people_rounded,
+                icon: currentIndex == 2 ? AppIcons.clientsFilled : AppIcons.clients,
                 label: 'Clients',
                 isActive: currentIndex == 2,
                 onTap: () => onTap(2),
                 isDark: isDark,
               ),
               _NavItem(
-                icon: Icons.restaurant_rounded,
+                icon: currentIndex == 3 ? AppIcons.mealFilled : AppIcons.meal,
                 label: 'Meal Plans',
                 isActive: currentIndex == 3,
                 onTap: () => onTap(3),
                 isDark: isDark,
               ),
               _NavItem(
-                icon: Icons.person_rounded,
+                icon: currentIndex == 4 ? AppIcons.profileFilled : AppIcons.profile,
                 label: 'Profile',
                 isActive: currentIndex == 4,
                 onTap: () => onTap(4),
@@ -125,35 +127,35 @@ class ClientBottomNavBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _NavItem(
-                icon: Icons.dashboard_rounded,
+                icon: currentIndex == 0 ? AppIcons.dashboardFilled : AppIcons.dashboard,
                 label: 'Dashboard',
                 isActive: currentIndex == 0,
                 onTap: () => onTap(0),
                 isDark: isDark,
               ),
               _NavItem(
-                icon: Icons.fitness_center_rounded,
+                icon: currentIndex == 1 ? AppIcons.workoutFilled : AppIcons.workout,
                 label: 'Workouts',
                 isActive: currentIndex == 1,
                 onTap: () => onTap(1),
                 isDark: isDark,
               ),
               _NavItem(
-                icon: Icons.water_drop_rounded,
+                icon: currentIndex == 2 ? AppIcons.waterFilled : AppIcons.water,
                 label: 'Water',
                 isActive: currentIndex == 2,
                 onTap: () => onTap(2),
                 isDark: isDark,
               ),
               _NavItem(
-                icon: Icons.trending_up_rounded,
+                icon: currentIndex == 3 ? AppIcons.progressFilled : AppIcons.progress,
                 label: 'Progress',
                 isActive: currentIndex == 3,
                 onTap: () => onTap(3),
                 isDark: isDark,
               ),
               _NavItem(
-                icon: Icons.person_rounded,
+                icon: currentIndex == 4 ? AppIcons.profileFilled : AppIcons.profile,
                 label: 'Profile',
                 isActive: currentIndex == 4,
                 onTap: () => onTap(4),
@@ -206,9 +208,9 @@ class _NavItem extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            PhosphorIcon(
               icon,
-              size: 22,
+              size: 24,
               color: isActive
                   ? (isDark
                       ? bottomNavIconColor

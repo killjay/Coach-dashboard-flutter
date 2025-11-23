@@ -7,6 +7,7 @@ import '../../../../../core/repositories/progress_repository.dart';
 import '../../../../../core/utils/responsive.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
+import 'water_history_screen.dart';
 
 /// Provider for today's water intake
 final dailyWaterProvider = FutureProvider<double>((ref) async {
@@ -80,7 +81,11 @@ class WaterTrackingScreen extends ConsumerWidget {
             icon: const Icon(Icons.history),
             tooltip: 'View History',
             onPressed: () {
-              // TODO: Navigate to water history
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const WaterHistoryScreen(),
+                ),
+              );
             },
           ),
         ],

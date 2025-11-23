@@ -15,7 +15,8 @@ abstract class AuthRepository {
   });
 
   /// Sign in with Google
-  Future<User> signInWithGoogle();
+  /// [role] is optional and only used for new users. Existing users keep their current role.
+  Future<User> signInWithGoogle({String? role});
 
   /// Sign in with Apple (iOS/macOS only)
   Future<User> signInWithApple();

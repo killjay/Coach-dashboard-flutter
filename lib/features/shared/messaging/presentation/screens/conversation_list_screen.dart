@@ -21,28 +21,87 @@ final conversationsProvider = StreamProvider<List<Conversation>>((ref) async* {
   yield* messageRepo.watchConversations(user.id);
 });
 
-class ConversationListScreen extends ConsumerWidget {
+class ConversationListScreen extends ConsumerStatefulWidget {
   const ConversationListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ConversationListScreen> createState() =>
+      _ConversationListScreenState();
+}
+
+class _ConversationListScreenState
+    extends ConsumerState<ConversationListScreen> {
+  final _searchController = TextEditingController();
+  bool _isSearching = false;
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = !_isSearching;
+      if (!_isSearching) {
+        _searchController.clear();
+        _searchQuery = '';
+      }
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query.toLowerCase();
+    });
+  }
+
+  List<Conversation> _filterConversations(List<Conversation> conversations) {
+    if (_searchQuery.isEmpty) {
+      return conversations;
+    }
+    return conversations.where((conv) {
+      return conv.clientName.toLowerCase().contains(_searchQuery) ||
+          (conv.lastMessage?.content.toLowerCase().contains(_searchQuery) ??
+              false);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final conversationsAsync = ref.watch(conversationsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Messages'),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Search conversations...',
+                  border: InputBorder.none,
+                ),
+                onChanged: _onSearchChanged,
+              )
+            : const Text('Messages'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search_rounded),
-            onPressed: () {
-              // TODO: Implement search
-            },
-          ),
+          if (_isSearching)
+            IconButton(
+              icon: const Icon(Icons.close_rounded),
+              onPressed: _toggleSearch,
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.search_rounded),
+              onPressed: _toggleSearch,
+            ),
         ],
       ),
       body: conversationsAsync.when(
         data: (conversations) {
+          final filteredConversations = _filterConversations(conversations);
           if (conversations.isEmpty) {
             return Center(
               child: Column(
@@ -76,11 +135,46 @@ class ConversationListScreen extends ConsumerWidget {
             );
           }
 
+          if (filteredConversations.isEmpty && _searchQuery.isNotEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.search_off_rounded,
+                    size: 64,
+                    color: isDark
+                        ? AppTheme.darkTextSecondary
+                        : AppTheme.textSecondary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No results found',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.textSecondary,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Try a different search term',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: isDark
+                              ? AppTheme.darkTextHint
+                              : AppTheme.textHint,
+                        ),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: conversations.length,
+            itemCount: filteredConversations.length,
             itemBuilder: (context, index) {
-              final conversation = conversations[index];
+              final conversation = filteredConversations[index];
               return _ConversationCard(
                 conversation: conversation,
                 onTap: () {

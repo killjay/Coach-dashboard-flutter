@@ -6,6 +6,54 @@ import '../repositories/workout_repository.dart';
 class FirebaseWorkoutService implements WorkoutRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Convert Firestore data to JSON format, handling Timestamps
+  Map<String, dynamic> _convertFirestoreData(Map<String, dynamic> data) {
+    final converted = Map<String, dynamic>.from(data);
+    
+    // Convert Timestamp to ISO 8601 string
+    if (converted['createdAt'] != null) {
+      if (converted['createdAt'] is Timestamp) {
+        converted['createdAt'] = (converted['createdAt'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      }
+    }
+    
+    return converted;
+  }
+
+  /// Convert Firestore assignment data to JSON format, handling Timestamps
+  Map<String, dynamic> _convertAssignmentData(Map<String, dynamic> data) {
+    final converted = Map<String, dynamic>.from(data);
+    
+    // Convert Timestamp fields to ISO 8601 strings
+    if (converted['assignedDate'] != null) {
+      if (converted['assignedDate'] is Timestamp) {
+        converted['assignedDate'] = (converted['assignedDate'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      }
+    }
+    
+    if (converted['dueDate'] != null) {
+      if (converted['dueDate'] is Timestamp) {
+        converted['dueDate'] = (converted['dueDate'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      }
+    }
+    
+    if (converted['completedAt'] != null) {
+      if (converted['completedAt'] is Timestamp) {
+        converted['completedAt'] = (converted['completedAt'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      }
+    }
+    
+    return converted;
+  }
+
   @override
   Future<List<Workout>> getWorkouts(String coachId) async {
     try {
@@ -20,7 +68,7 @@ class FirebaseWorkoutService implements WorkoutRepository {
             final data = doc.data();
             return Workout.fromJson({
               'id': doc.id,
-              ...data,
+              ..._convertFirestoreData(data),
             });
           })
           .toList();
@@ -32,21 +80,50 @@ class FirebaseWorkoutService implements WorkoutRepository {
   @override
   Future<Workout> getWorkoutById(String workoutId) async {
     try {
+      if (workoutId.isEmpty) {
+        throw Exception('Workout ID is empty');
+      }
+
       final doc = await _firestore.collection('workouts').doc(workoutId).get();
 
       if (!doc.exists) {
-        throw Exception('Workout not found');
+        throw Exception('Workout not found with ID: $workoutId');
       }
 
       final data = doc.data();
       if (data == null) {
-        throw Exception('Workout data is null');
+        throw Exception('Workout data is null for ID: $workoutId');
       }
-      return Workout.fromJson({
-        'id': doc.id,
-        ...data,
-      });
+
+      // Convert Firestore data
+      final convertedData = _convertFirestoreData(data);
+      
+      // Ensure exercises are in the correct format (List<Map<String, dynamic>>)
+      if (convertedData['exercises'] != null) {
+        if (convertedData['exercises'] is List) {
+          final exercisesList = convertedData['exercises'] as List;
+          convertedData['exercises'] = exercisesList.map((exercise) {
+            if (exercise is Map<String, dynamic>) {
+              return exercise;
+            }
+            // If it's already serialized, return as is
+            return exercise;
+          }).toList();
+        }
+      }
+
+      try {
+        return Workout.fromJson({
+          'id': doc.id,
+          ...convertedData,
+        });
+      } catch (e) {
+        throw Exception('Failed to parse workout data: $e. Workout ID: $workoutId');
+      }
     } catch (e) {
+      if (e.toString().contains('Workout not found') || e.toString().contains('Workout ID is empty')) {
+        rethrow;
+      }
       throw Exception('Failed to get workout: $e');
     }
   }
@@ -58,6 +135,13 @@ class FirebaseWorkoutService implements WorkoutRepository {
 
       final workoutData = workout.toJson();
       workoutData.remove('id'); // Remove id as Firestore generates it
+      
+      // Explicitly serialize exercises to ensure they're converted to JSON
+      if (workoutData['exercises'] != null) {
+        workoutData['exercises'] = workout.exercises
+            .map((exercise) => exercise.toJson())
+            .toList();
+      }
 
       await docRef.set({
         ...workoutData,
@@ -75,6 +159,13 @@ class FirebaseWorkoutService implements WorkoutRepository {
     try {
       final workoutData = workout.toJson();
       workoutData.remove('id');
+      
+      // Explicitly serialize exercises to ensure they're converted to JSON
+      if (workoutData['exercises'] != null) {
+        workoutData['exercises'] = workout.exercises
+            .map((exercise) => exercise.toJson())
+            .toList();
+      }
 
       await _firestore.collection('workouts').doc(workout.id).update(
             workoutData,
@@ -144,7 +235,7 @@ class FirebaseWorkoutService implements WorkoutRepository {
             cleanData.remove('coachId');
             return WorkoutAssignment.fromJson({
               'id': doc.id,
-              ...cleanData,
+              ..._convertAssignmentData(cleanData),
             });
           })
           .toList();
@@ -172,7 +263,7 @@ class FirebaseWorkoutService implements WorkoutRepository {
             cleanData.remove('coachId');
             return WorkoutAssignment.fromJson({
               'id': doc.id,
-              ...cleanData,
+              ..._convertAssignmentData(cleanData),
             });
           })
           .toList();
@@ -211,7 +302,7 @@ class FirebaseWorkoutService implements WorkoutRepository {
               final data = doc.data();
               return Workout.fromJson({
                 'id': doc.id,
-                ...data,
+                ..._convertFirestoreData(data),
               });
             })
             .toList());
@@ -229,7 +320,7 @@ class FirebaseWorkoutService implements WorkoutRepository {
               final data = doc.data();
               return WorkoutAssignment.fromJson({
                 'id': doc.id,
-                ...data,
+                ..._convertAssignmentData(data),
               });
             })
             .toList());

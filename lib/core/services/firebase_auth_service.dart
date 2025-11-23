@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import '../../firebase_options.dart';
 import '../models/user.dart';
 import '../repositories/auth_repository.dart';
 import 'firebase_user_service.dart';
@@ -12,7 +13,12 @@ class FirebaseAuthService implements AuthRepository {
   // Lazy initialization to avoid errors if Google Sign-In is not configured
   GoogleSignIn? _googleSignIn;
   GoogleSignIn get googleSignIn {
-    _googleSignIn ??= GoogleSignIn();
+    _googleSignIn ??= GoogleSignIn(
+      scopes: ['email', 'profile'],
+      // For web, the clientId will be read from the meta tag in index.html
+      // If you want to set it programmatically, uncomment and add your OAuth Client ID:
+      // clientId: kIsWeb ? 'YOUR_OAUTH_CLIENT_ID.apps.googleusercontent.com' : null,
+    );
     return _googleSignIn!;
   }
   final FirebaseUserService _userService = FirebaseUserService();
@@ -83,51 +89,72 @@ class FirebaseAuthService implements AuthRepository {
   }
 
   @override
-  Future<User> signInWithGoogle() async {
+  Future<User> signInWithGoogle({String? role}) async {
     try {
+      debugPrint('🔵 Starting Google Sign-In...');
+      
       // Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      debugPrint('🔵 Google Sign-In result: ${googleUser != null ? "Success" : "Cancelled"}');
 
       if (googleUser == null) {
         throw Exception('Google sign in was cancelled');
       }
 
+      debugPrint('🔵 Getting authentication details...');
       // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
+      debugPrint('🔵 Authentication details obtained');
 
       // Create a new credential
       final credential = firebase_auth.GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
+      debugPrint('🔵 Credential created, signing in to Firebase...');
 
       // Sign in to Firebase with the Google credential
       final userCredential = await _auth.signInWithCredential(credential);
+      debugPrint('🔵 Firebase sign-in result: ${userCredential.user != null ? "Success" : "Failed"}');
 
       if (userCredential.user == null) {
         throw Exception('Google sign in failed: User is null');
       }
 
       final firebaseUser = userCredential.user!;
+      debugPrint('🔵 Firebase user ID: ${firebaseUser.uid}');
       
       // Check if user exists in Firestore, if not create it
+      debugPrint('🔵 Checking if user exists in Firestore...');
       var user = await _userService.getUser(firebaseUser.uid);
       if (user == null) {
+        debugPrint('🔵 User not found in Firestore, creating new user...');
         // New user, create in Firestore
+        // Use provided role if available, otherwise default to 'client'
+        final userRole = role ?? 'client';
         user = User(
           id: firebaseUser.uid,
           email: firebaseUser.email ?? '',
           name: firebaseUser.displayName ?? googleUser.displayName ?? '',
-          role: 'client', // Default role for Google sign-in
+          role: userRole,
           avatarUrl: firebaseUser.photoURL ?? googleUser.photoUrl,
           createdAt: DateTime.now(),
         );
         await _userService.saveUser(user);
+        debugPrint('✅ New user created in Firestore with role: $userRole');
+      } else {
+        debugPrint('✅ Existing user found in Firestore with role: ${user.role}');
       }
+      // If user already exists, their role is preserved
 
       return user;
-    } catch (e) {
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      debugPrint('❌ FirebaseAuthException during Google Sign-In: ${e.code} - ${e.message}');
+      throw _handleAuthException(e);
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error during Google Sign-In: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
       throw Exception('Google sign in failed: $e');
     }
   }

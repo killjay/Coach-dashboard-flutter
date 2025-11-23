@@ -36,6 +36,7 @@ import '../../core/models/message.dart';
 import '../../features/coach/meal_plans/presentation/screens/assign_meal_plan_screen.dart';
 import '../../features/shared/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/coach/workouts/presentation/screens/workout_calendar_screen.dart';
+import '../../features/coach/workouts/presentation/screens/assign_workout_screen.dart';
 import '../../features/shared/messaging/presentation/screens/client_conversation_list_screen.dart';
 import '../../features/client/meal_plans/presentation/screens/assigned_meal_plans_screen.dart';
 import '../../features/client/workouts/presentation/screens/client_workout_calendar_screen.dart';
@@ -44,6 +45,11 @@ import '../../features/coach/goals/presentation/screens/create_goal_screen.dart'
 import '../../features/coach/goals/presentation/screens/goal_detail_screen.dart';
 import '../../features/client/goals/presentation/screens/client_goals_screen.dart';
 import '../../features/client/goals/presentation/screens/client_goal_detail_screen.dart';
+import '../../features/shared/profile/presentation/screens/profile_screen.dart';
+import '../../features/auth/presentation/screens/forgot_password_screen.dart';
+import '../../features/client/water_tracking/presentation/screens/water_history_screen.dart';
+import '../../features/shared/settings/presentation/screens/settings_screen.dart';
+import '../../features/shared/support/presentation/screens/help_support_screen.dart';
 
 /// App routes
 class AppRoutes {
@@ -78,6 +84,7 @@ class AppRoutes {
   static const String messages = '/messages';
   static const String chat = '/messages/:clientId';
   static const String assignMealPlan = '/coach/meal-plans/assign';
+  static const String assignWorkout = '/coach/workouts/assign';
   static const String notifications = '/notifications';
   static const String workoutCalendar = '/coach/workouts/calendar';
   static const String coachGoals = '/coach/goals';
@@ -85,6 +92,11 @@ class AppRoutes {
   static const String goalDetail = '/coach/goals/:id';
   static const String clientGoals = '/client/goals';
   static const String clientGoalDetail = '/client/goals/:id';
+  static const String profile = '/profile';
+  static const String forgotPassword = '/forgot-password';
+  static const String waterHistory = '/client/water/history';
+  static const String settings = '/settings';
+  static const String helpSupport = '/help-support';
 }
 
 /// Router configuration
@@ -159,6 +171,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final workout = state.extra as Workout?;
           return CreateWorkoutScreen(workout: workout);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.assignWorkout,
+        builder: (context, state) {
+          final clientId = state.uri.queryParameters['clientId'];
+          final workoutId = state.uri.queryParameters['workoutId'];
+          return AssignWorkoutScreen(
+            clientId: clientId,
+            workoutId: workoutId,
+          );
         },
       ),
       GoRoute(
@@ -352,6 +375,31 @@ final routerProvider = Provider<GoRouter>((ref) {
           final goalId = state.pathParameters['id']!;
           return ClientGoalDetailScreen(goalId: goalId);
         },
+      ),
+      // Profile route
+      GoRoute(
+        path: AppRoutes.profile,
+        builder: (context, state) => const ProfileScreen(),
+      ),
+      // Forgot password route
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      // Water history route
+      GoRoute(
+        path: AppRoutes.waterHistory,
+        builder: (context, state) => const WaterHistoryScreen(),
+      ),
+      // Settings route
+      GoRoute(
+        path: AppRoutes.settings,
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      // Help & Support route
+      GoRoute(
+        path: AppRoutes.helpSupport,
+        builder: (context, state) => const HelpSupportScreen(),
       ),
     ],
   );

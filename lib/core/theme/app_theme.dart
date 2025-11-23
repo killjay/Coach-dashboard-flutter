@@ -3,6 +3,58 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
+  // Apple HIG Spacing Constants - for consistent spacing throughout the app
+  static const double spacingXS = 4.0;
+  static const double spacingSM = 8.0;
+  static const double spacingMD = 16.0;
+  static const double spacingLG = 24.0;
+  static const double spacingXL = 32.0;
+  static const double spacingXXL = 48.0;
+
+  // Apple HIG Border Radius Constants
+  static const double radiusSM = 8.0;
+  static const double radiusMD = 12.0;
+  static const double radiusLG = 16.0;
+  static const double radiusXL = 20.0;
+  static const double radiusXXL = 24.0;
+
+  // Apple HIG Shadow Constants - for depth and hierarchy
+  static List<BoxShadow> get lightShadow => [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 2),
+          spreadRadius: 0,
+        ),
+      ];
+  
+  static List<BoxShadow> get mediumShadow => [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.1),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
+          spreadRadius: 0,
+        ),
+      ];
+  
+  static List<BoxShadow> get largeShadow => [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.15),
+          blurRadius: 30,
+          offset: const Offset(0, 12),
+          spreadRadius: 0,
+        ),
+      ];
+
+  static List<BoxShadow> get darkShadow => [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.3),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
+          spreadRadius: 0,
+        ),
+      ];
+
   // Modern Color Palette
   static const Color primaryColor = Color(0xFF6366F1); // Indigo
   static const Color primaryLight = Color(0xFF818CF8);
