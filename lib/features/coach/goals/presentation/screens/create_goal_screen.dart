@@ -287,7 +287,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         DropdownButtonFormField<String>(
-                          initialValue: null,
+                          value: null,
                           decoration: InputDecoration(
                             labelText: 'Select Client *',
                             border: OutlineInputBorder(
@@ -314,7 +314,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
                     );
                   }
                   return DropdownButtonFormField<String>(
-                    initialValue: _selectedClientId,
+                    value: _selectedClientId,
                     decoration: InputDecoration(
                       labelText: 'Select Client *',
                       border: OutlineInputBorder(
@@ -399,7 +399,7 @@ class _CreateGoalScreenState extends ConsumerState<CreateGoalScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<GoalType>(
-                initialValue: _selectedType,
+                value: _selectedType,
                 decoration: InputDecoration(
                   labelText: 'Type *',
                   border: OutlineInputBorder(

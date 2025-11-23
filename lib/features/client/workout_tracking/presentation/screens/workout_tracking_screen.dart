@@ -209,7 +209,7 @@ class _WorkoutAssignmentCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  backgroundColor: _getStatusColor().withValues(alpha: 0.2),
+                  backgroundColor: _getStatusColor().withOpacity(0.2),
                   labelStyle: TextStyle(color: _getStatusColor()),
                 ),
               ],
