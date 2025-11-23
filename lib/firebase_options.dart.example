@@ -47,29 +47,30 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyC7XKve0FGTcMNvHEywyXsNTrisTgQKsTM',
-    appId: '1:894884637300:web:37bacab00963bb87dabf21',
-    messagingSenderId: '894884637300',
-    projectId: 'coach-dashboard-7b966',
-    authDomain: 'coach-dashboard-7b966.firebaseapp.com',
-    storageBucket: 'coach-dashboard-7b966.firebasestorage.app',
-    measurementId: 'G-5STFCC02HN',
+    apiKey: 'YOUR_WEB_API_KEY',
+    appId: 'YOUR_WEB_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'YOUR_PROJECT_ID',
+    authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
+    storageBucket: 'YOUR_PROJECT_ID.firebasestorage.app',
+    measurementId: 'YOUR_MEASUREMENT_ID',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCcUnWqlK3DjV7YwLXeVeOQ3BOdg3GxFcs',
-    appId: '1:894884637300:android:3a885c38a8f6049adabf21',
-    messagingSenderId: '894884637300',
-    projectId: 'coach-dashboard-7b966',
-    storageBucket: 'coach-dashboard-7b966.firebasestorage.app',
+    apiKey: 'YOUR_ANDROID_API_KEY',
+    appId: 'YOUR_ANDROID_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_PROJECT_ID.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCOY-SO1XSKVpoqtpgC0ZZbrAkVstqf4Nw',
-    appId: '1:894884637300:ios:185cccf4ce6f4b1cdabf21',
-    messagingSenderId: '894884637300',
-    projectId: 'coach-dashboard-7b966',
-    storageBucket: 'coach-dashboard-7b966.firebasestorage.app',
+    apiKey: 'YOUR_IOS_API_KEY',
+    appId: 'YOUR_IOS_APP_ID',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_PROJECT_ID.firebasestorage.app',
     iosBundleId: 'com.coachclient.app',
   );
 }
+
