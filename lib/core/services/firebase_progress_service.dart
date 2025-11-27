@@ -1,6 +1,7 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import '../models/progress.dart';
 import '../repositories/progress_repository.dart';
 
@@ -332,18 +333,44 @@ class FirebaseProgressService implements ProgressRepository {
   @override
   Future<ProgressPhoto> uploadProgressPhoto({
     required String clientId,
-    required String imagePath,
+    String? imagePath, // No longer used, but kept for interface compatibility
+    Uint8List? imageBytes,
     String? notes,
   }) async {
+    debugPrint('🔥 [FirebaseProgressService] uploadProgressPhoto called');
+    debugPrint('🔥 [FirebaseProgressService] Client ID: $clientId');
+    
     try {
-      // Upload image to Firebase Storage
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = _storage.ref().child('progressPhotos/$clientId/$fileName');
+      // Validate that bytes are provided
+      if (imageBytes == null) {
+        throw Exception('imageBytes is required. The UI layer should read bytes from XFile using readAsBytes()');
+      }
+      
+      debugPrint('🔥 [FirebaseProgressService] Bytes received: ${imageBytes.length} bytes');
+      
+      // Create storage reference with organized path structure
+      // Use ISO8601 string for better file organization
+      final storageRef = _storage
+          .ref()
+          .child('users/$clientId/progress/${DateTime.now().toIso8601String()}.jpg');
+      
+      debugPrint('🔥 [FirebaseProgressService] Storage path: users/$clientId/progress/...');
+      
+      // USE putData INSTEAD OF putFile
+      // putData works with Uint8List on both Web and Mobile
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+      );
+      
+      debugPrint('🔥 [FirebaseProgressService] Uploading to Firebase Storage...');
+      await storageRef.putData(imageBytes, metadata);
+      debugPrint('✅ [FirebaseProgressService] Upload completed successfully');
+      
+      // Get download URL
+      final imageUrl = await storageRef.getDownloadURL();
+      debugPrint('✅ [FirebaseProgressService] Download URL obtained');
 
-      final file = File(imagePath);
-      await ref.putFile(file);
-      final imageUrl = await ref.getDownloadURL();
-
+      debugPrint('🔥 [FirebaseProgressService] Creating ProgressPhoto object...');
       // Save photo metadata to Firestore
       final photo = ProgressPhoto(
         id: '', // Will be set by Firestore
@@ -353,6 +380,7 @@ class FirebaseProgressService implements ProgressRepository {
         notes: notes,
       );
 
+      debugPrint('🔥 [FirebaseProgressService] Saving metadata to Firestore...');
       final photoData = photo.toJson();
       photoData.remove('id');
 
@@ -361,8 +389,12 @@ class FirebaseProgressService implements ProgressRepository {
         'takenAt': FieldValue.serverTimestamp(),
       });
 
-      return photo.copyWith(id: docRef.id);
-    } catch (e) {
+      final result = photo.copyWith(id: docRef.id);
+      debugPrint('✅ [FirebaseProgressService] Upload process completed successfully!');
+      return result;
+    } catch (e, stackTrace) {
+      debugPrint('❌ [FirebaseProgressService] Error: $e');
+      debugPrint('❌ [FirebaseProgressService] Stack trace: $stackTrace');
       throw Exception('Failed to upload progress photo: $e');
     }
   }

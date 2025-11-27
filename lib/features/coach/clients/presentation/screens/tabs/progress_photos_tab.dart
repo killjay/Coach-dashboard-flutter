@@ -25,8 +25,12 @@ class ProgressPhotosTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final photosAsync = ref.watch(progressPhotosProvider(clientId));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return photosAsync.when(
+    return Container(
+      // TEMPORARY: Orange background in dark mode to test cache
+      color: isDark ? Colors.orange : null,
+      child: photosAsync.when(
       data: (photos) {
         if (photos.isEmpty) {
           return Center(
@@ -94,6 +98,7 @@ class ProgressPhotosTab extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

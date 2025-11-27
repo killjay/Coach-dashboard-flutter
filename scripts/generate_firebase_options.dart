@@ -71,3 +71,8 @@ class DefaultFirebaseOptions {
   print('✅ Generated lib/firebase_options.dart from environment variables');
 }
 
+
+
+
+
+

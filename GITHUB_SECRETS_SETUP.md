@@ -60,3 +60,8 @@ Once you've added all the secrets:
 - ✅ Only repository collaborators with admin access can view/manage secrets
 - ✅ The generated `firebase_options.dart` is not committed to the repository (it's in `.gitignore`)
 
+
+
+
+
+

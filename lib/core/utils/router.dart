@@ -9,6 +9,7 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/coach/presentation/screens/coach_dashboard_screen.dart';
 import '../../features/client/presentation/screens/client_dashboard_screen.dart';
+import '../../features/client/presentation/screens/home_screen.dart';
 import '../../features/coach/workouts/presentation/screens/workout_list_screen.dart';
 import '../../features/coach/workouts/presentation/screens/create_workout_screen.dart';
 import '../../features/coach/workouts/presentation/screens/workout_detail_screen.dart';
@@ -160,7 +161,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.clientDashboard,
-        builder: (context, state) => const ClientDashboardScreen(),
+        builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
         path: AppRoutes.coachWorkouts,

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import '../models/progress.dart';
 
 /// Abstract repository interface for progress tracking
@@ -78,9 +79,11 @@ abstract class ProgressRepository {
 
   // Progress photos
   /// Upload progress photo
+  /// On web, pass bytes. On mobile, pass imagePath.
   Future<ProgressPhoto> uploadProgressPhoto({
     required String clientId,
-    required String imagePath,
+    String? imagePath,
+    Uint8List? imageBytes,
     String? notes,
   });
 

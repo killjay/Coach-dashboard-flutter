@@ -28,7 +28,7 @@ class AppConfig {
   /// Development mode: Skip authentication
   /// Set to true to bypass login and go directly to dashboards
   /// Set to false to enable authentication (for production)
-  static const bool skipAuthentication = false;
+  static const bool skipAuthentication = true;
 
   /// Default role when skipping authentication
   /// Options: 'coach' or 'client'

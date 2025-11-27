@@ -1,5 +1,6 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../../core/models/progress.dart';
@@ -30,29 +31,107 @@ class ProgressScreen extends ConsumerStatefulWidget {
 class _ProgressScreenState extends ConsumerState<ProgressScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   bool _isUploading = false;
+  String _uploadStatus = ''; // Temporary progress tracking text
 
   Future<void> _uploadPhoto() async {
+    debugPrint('📸 [ProgressPhoto] ========== UPLOAD STARTED ==========');
+    debugPrint('📸 [ProgressPhoto] Platform: Web (kIsWeb check)');
+    debugPrint('📸 [ProgressPhoto] ImagePicker instance created: ${_imagePicker.hashCode}');
+    
     try {
-      final pickedFile = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
+      // 1. Pick the image (Works seamlessly on Web & Mobile)
+      setState(() {
+        _uploadStatus = 'Step 1/4: Opening image picker...';
+        _isUploading = true;
+      });
+      debugPrint('📸 [ProgressPhoto] Step 1: Opening image picker...');
+      debugPrint('📸 [ProgressPhoto] Calling _imagePicker.pickImage()...');
+      
+      final XFile? pickedFile;
+      try {
+        pickedFile = await _imagePicker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 85,
+        );
+        debugPrint('📸 [ProgressPhoto] Image picker returned: ${pickedFile != null ? "File selected" : "Cancelled"}');
+      } catch (e, stackTrace) {
+        debugPrint('❌ [ProgressPhoto] ERROR in image picker: $e');
+        debugPrint('❌ [ProgressPhoto] Stack trace: $stackTrace');
+        rethrow;
+      }
 
-      if (pickedFile == null) return;
+      if (pickedFile == null) {
+        setState(() {
+          _uploadStatus = 'Cancelled';
+          _isUploading = false;
+        });
+        debugPrint('📸 [ProgressPhoto] No image selected');
+        return;
+      }
 
-      setState(() => _isUploading = true);
+      setState(() {
+        _uploadStatus = 'Step 2/4: Reading image (${pickedFile.name})...';
+      });
+      debugPrint('📸 [ProgressPhoto] Step 2: Image selected: ${pickedFile.name}');
+      debugPrint('📸 [ProgressPhoto] File path: ${pickedFile.path}');
+
+      // 2. Read bytes (Works seamlessly on Web & Mobile)
+      // On web: this reads the browser Blob. On mobile: reads the filesystem.
+      debugPrint('📸 [ProgressPhoto] Step 2: Reading image as bytes...');
+      debugPrint('📸 [ProgressPhoto] Calling pickedFile.readAsBytes()...');
+      
+      final Uint8List bytes;
+      try {
+        bytes = await pickedFile.readAsBytes();
+        debugPrint('📸 [ProgressPhoto] readAsBytes() completed successfully');
+      } catch (e, stackTrace) {
+        debugPrint('❌ [ProgressPhoto] ERROR reading bytes: $e');
+        debugPrint('❌ [ProgressPhoto] Stack trace: $stackTrace');
+        rethrow;
+      }
+
+      if (bytes.isEmpty) {
+        throw Exception('File is empty');
+      }
+      
+      setState(() {
+        _uploadStatus = 'Step 3/4: Uploading ${(bytes.length / 1024).toStringAsFixed(1)} KB...';
+      });
+      debugPrint('✅ [ProgressPhoto] Step 3: Successfully got ${bytes.length} bytes');
 
       final user = ref.read(currentUserProvider);
       if (user == null) {
         throw Exception('User not found');
       }
-
+      
+      debugPrint('📸 [ProgressPhoto] User ID: ${user.id}');
       final progressRepo = ref.read(progressRepositoryProvider);
-
-      await progressRepo.uploadProgressPhoto(
-        clientId: user.id,
-        imagePath: pickedFile.path,
-      );
+      debugPrint('📸 [ProgressPhoto] Progress repository obtained: ${progressRepo.runtimeType}');
+      
+      // 3. Upload
+      setState(() {
+        _uploadStatus = 'Step 4/4: Saving to Firebase...';
+      });
+      debugPrint('📸 [ProgressPhoto] Step 4: Uploading to Firebase Storage...');
+      debugPrint('📸 [ProgressPhoto] Calling progressRepo.uploadProgressPhoto()...');
+      
+      try {
+        await progressRepo.uploadProgressPhoto(
+          clientId: user.id,
+          imageBytes: bytes,
+        );
+        debugPrint('✅ [ProgressPhoto] Repository upload completed successfully');
+      } catch (e, stackTrace) {
+        debugPrint('❌ [ProgressPhoto] ERROR in repository upload: $e');
+        debugPrint('❌ [ProgressPhoto] Error type: ${e.runtimeType}');
+        debugPrint('❌ [ProgressPhoto] Stack trace: $stackTrace');
+        rethrow;
+      }
+      
+      setState(() {
+        _uploadStatus = '✅ Upload complete!';
+      });
+      debugPrint('✅ [ProgressPhoto] Upload completed successfully!');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -61,15 +140,85 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           ),
         );
         ref.invalidate(clientProgressPhotosProvider);
+        
+        // Clear status after a delay
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              _uploadStatus = '';
+            });
+          }
+        });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      final errorMessage = e.toString();
+      final errorType = e.runtimeType.toString();
+      
+      setState(() {
+        _uploadStatus = '❌ Error: $errorMessage';
+      });
+      
+      debugPrint('❌ [ProgressPhoto] ========== ERROR CAUGHT ==========');
+      debugPrint('❌ [ProgressPhoto] Error type: $errorType');
+      debugPrint('❌ [ProgressPhoto] Error message: $errorMessage');
+      debugPrint('❌ [ProgressPhoto] Full error object: $e');
+      debugPrint('❌ [ProgressPhoto] Stack trace:');
+      debugPrint('$stackTrace');
+      debugPrint('❌ [ProgressPhoto] ===================================');
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error uploading photo: $e'),
+            content: Text('Error uploading photo: $errorMessage'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Details',
+              textColor: Colors.white,
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Upload Error Details'),
+                    content: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Type: $errorType'),
+                          const SizedBox(height: 8),
+                          Text('Message: $errorMessage'),
+                          const SizedBox(height: 8),
+                          const Text('Stack Trace:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          Text(
+                            stackTrace.toString(),
+                            style: const TextStyle(fontSize: 10, fontFamily: 'monospace'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         );
+        
+        // Clear error status after a delay
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted) {
+            setState(() {
+              _uploadStatus = '';
+            });
+          }
+        });
       }
     } finally {
       if (mounted) {
@@ -103,81 +252,127 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
             ),
         ],
       ),
-      body: photosAsync.when(
-        data: (photos) {
-          if (photos.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: Column(
+        children: [
+          // Temporary progress tracking text
+          if (_uploadStatus.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: _uploadStatus.contains('❌')
+                  ? Colors.red.shade50
+                  : _uploadStatus.contains('✅')
+                      ? Colors.green.shade50
+                      : Colors.blue.shade50,
+              child: Row(
                 children: [
-                  Icon(
-                    Icons.photo_library_outlined,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No progress photos yet',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Upload photos to track your progress',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[500],
-                        ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: _uploadPhoto,
-                    icon: const Icon(Icons.add_a_photo),
-                    label: const Text('Upload Photo'),
+                  if (_isUploading)
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else if (_uploadStatus.contains('✅'))
+                    const Icon(Icons.check_circle, color: Colors.green, size: 20)
+                  else if (_uploadStatus.contains('❌'))
+                    const Icon(Icons.error, color: Colors.red, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _uploadStatus,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: _uploadStatus.contains('❌')
+                                ? Colors.red.shade900
+                                : _uploadStatus.contains('✅')
+                                    ? Colors.green.shade900
+                                    : Colors.blue.shade900,
+                          ),
+                    ),
                   ),
                 ],
               ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(clientProgressPhotosProvider);
-            },
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.75,
-              ),
-              itemCount: photos.length,
-              itemBuilder: (context, index) {
-                final photo = photos[index];
-                return _ProgressPhotoCard(photo: photo);
-              },
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.red[300],
+          // Main content
+          Expanded(
+            child: photosAsync.when(
+              data: (photos) {
+                if (photos.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.photo_library_outlined,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No progress photos yet',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Upload photos to track your progress',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.grey[500],
+                              ),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: _uploadPhoto,
+                          icon: const Icon(Icons.add_a_photo),
+                          label: const Text('Upload Photo'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(clientProgressPhotosProvider);
+                  },
+                  child: GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.75,
+                    ),
+                    itemCount: photos.length,
+                    itemBuilder: (context, index) {
+                      final photo = photos[index];
+                      return _ProgressPhotoCard(photo: photo);
+                    },
+                  ),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red[300],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error loading photos',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Error loading photos',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _isUploading ? null : _uploadPhoto,
@@ -292,4 +487,3 @@ class _ProgressPhotoCard extends StatelessWidget {
     );
   }
 }
-

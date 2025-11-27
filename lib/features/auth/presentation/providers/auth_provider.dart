@@ -16,7 +16,7 @@ final currentUserProvider = Provider<User?>((ref) {
   // If authentication is skipped, return a default user
   if (AppConfig.skipAuthentication) {
     return User(
-      id: 'dev-coach-${AppConfig.defaultRole}',
+      id: 'dev-${AppConfig.defaultRole}',
       email: '${AppConfig.defaultRole}@dev.local',
       name: 'Development ${AppConfig.defaultRole.capitalize()}',
       role: AppConfig.defaultRole,
@@ -38,10 +38,13 @@ extension StringExtension on String {
 }
 
 /// Authentication notifier
-class AuthNotifier extends StateNotifier<AsyncValue<void>> {
-  AuthNotifier(this._authRepository) : super(const AsyncValue.data(null));
+class AuthNotifier extends Notifier<AsyncValue<void>> {
+  AuthRepository get _authRepository => ref.read(authRepositoryProvider);
 
-  final AuthRepository _authRepository;
+  @override
+  AsyncValue<void> build() {
+    return const AsyncValue.data(null);
+  }
 
   /// Sign in with email and password
   Future<void> signInWithEmail(String email, String password) async {
@@ -123,9 +126,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
 
 /// Auth notifier provider
 final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, AsyncValue<void>>((ref) {
-  final authRepository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(authRepository);
+    NotifierProvider<AuthNotifier, AsyncValue<void>>(() {
+  return AuthNotifier();
 });
 
 

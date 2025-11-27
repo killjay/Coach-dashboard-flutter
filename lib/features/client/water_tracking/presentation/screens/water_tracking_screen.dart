@@ -9,8 +9,9 @@ import '../../../../../core/theme/app_theme.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import 'water_history_screen.dart';
 
-/// Provider for today's water intake
-final dailyWaterProvider = FutureProvider<double>((ref) async {
+/// Provider family for daily water intake by date
+/// Uses keepAlive for today's date to cache results and prevent unnecessary refetches
+final dailyWaterProvider = FutureProvider.autoDispose.family<double, DateTime>((ref, date) async {
   final progressRepo = ref.watch(progressRepositoryProvider);
   final user = ref.watch(currentUserProvider);
   
@@ -18,11 +19,47 @@ final dailyWaterProvider = FutureProvider<double>((ref) async {
     return 0.0;
   }
   
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
+  final normalizedDate = DateTime(date.year, date.month, date.day);
+  final today = DateTime.now();
+  final normalizedToday = DateTime(today.year, today.month, today.day);
   
-  return progressRepo.getDailyWaterTotal(user.id, today);
+  // Keep today's data alive to prevent refetch on screen reload
+  if (normalizedDate.year == normalizedToday.year &&
+      normalizedDate.month == normalizedToday.month &&
+      normalizedDate.day == normalizedToday.day) {
+    ref.keepAlive();
+  }
+  
+  return progressRepo.getDailyWaterTotal(user.id, normalizedDate);
 });
+
+/// Provider for today's date (normalized to start of day)
+final todayProvider = Provider<DateTime>((ref) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day);
+});
+
+/// Local state provider for optimistic water updates
+/// This allows immediate UI updates before server confirmation
+final optimisticWaterProvider = StateNotifierProvider<OptimisticWaterNotifier, double?>((ref) {
+  return OptimisticWaterNotifier();
+});
+
+class OptimisticWaterNotifier extends StateNotifier<double?> {
+  OptimisticWaterNotifier() : super(null);
+  
+  void addWater(double amount) {
+    state = (state ?? 0.0) + amount;
+  }
+  
+  void reset() {
+    state = null;
+  }
+  
+  void syncWithServer(double serverValue) {
+    state = null; // Clear optimistic value once server confirms
+  }
+}
 
 /// Default daily water goal in liters
 const double defaultWaterGoal = 2.5; // 2.5 liters = ~8 glasses
@@ -37,16 +74,27 @@ class WaterTrackingScreen extends ConsumerWidget {
   ) async {
     final progressRepo = ref.read(progressRepositoryProvider);
     final user = ref.read(currentUserProvider);
+    final today = ref.read(todayProvider);
 
     if (user == null) {
       return;
     }
+
+    // Optimistic update - immediately update UI
+    ref.read(optimisticWaterProvider.notifier).addWater(amount);
 
     try {
       await progressRepo.logWater(
         clientId: user.id,
         amount: amount,
       );
+
+      // Sync with server - refresh the provider to get latest value
+      // Using refresh instead of invalidate preserves cache for other dates
+      await ref.refresh(dailyWaterProvider(today).future);
+      
+      // Clear optimistic value once server confirms
+      ref.read(optimisticWaterProvider.notifier).syncWithServer(0.0);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -55,9 +103,11 @@ class WaterTrackingScreen extends ConsumerWidget {
             duration: const Duration(seconds: 2),
           ),
         );
-        ref.invalidate(dailyWaterProvider);
       }
     } catch (e) {
+      // Revert optimistic update on error
+      ref.read(optimisticWaterProvider.notifier).addWater(-amount);
+      
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -71,7 +121,15 @@ class WaterTrackingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final waterAsync = ref.watch(dailyWaterProvider);
+    final today = ref.watch(todayProvider);
+    final waterAsync = ref.watch(dailyWaterProvider(today));
+    final optimisticAmount = ref.watch(optimisticWaterProvider);
+    
+    // Combine server value with optimistic update for immediate UI feedback
+    final displayAmount = waterAsync.maybeWhen(
+      data: (serverAmount) => serverAmount + (optimisticAmount ?? 0.0),
+      orElse: () => optimisticAmount ?? 0.0,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -91,9 +149,10 @@ class WaterTrackingScreen extends ConsumerWidget {
         ],
       ),
       body: waterAsync.when(
-        data: (waterAmount) {
-          final percentage = (waterAmount / defaultWaterGoal).clamp(0.0, 1.0);
-          final remaining = (defaultWaterGoal - waterAmount).clamp(0.0, double.infinity);
+        data: (_) {
+          // Use displayAmount which includes optimistic updates
+          final percentage = (displayAmount / defaultWaterGoal).clamp(0.0, 1.0);
+          final remaining = (defaultWaterGoal - displayAmount).clamp(0.0, double.infinity);
 
           final responsive = Responsive(context);
           
@@ -169,7 +228,7 @@ class WaterTrackingScreen extends ConsumerWidget {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        '${waterAmount.toStringAsFixed(1)}L',
+                                        '${displayAmount.toStringAsFixed(1)}L',
                                         style: Theme.of(context)
                                             .textTheme
                                             .displaySmall
@@ -322,7 +381,7 @@ class WaterTrackingScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  ref.invalidate(dailyWaterProvider);
+                  ref.refresh(dailyWaterProvider(today));
                 },
                 child: const Text('Retry'),
               ),
